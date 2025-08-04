@@ -217,7 +217,14 @@ typedef struct
  * Clock Disable Macros for GPIOx peripherals
  */
 #define GPIOA_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 0))
-// TODO: remaning
+#define GPIOB_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 1))
+#define GPIOC_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 2))
+#define GPIOD_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 3))
+#define GPIOE_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 4))
+#define GPIOF_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 5))
+#define GPIOG_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 6))
+#define GPIOH_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 7))
+#define GPIOI_PCLK_DI() (RCC->AHB1ENR &= ~(1 << 8))
 
 /*
  * Clock Disable Macros for SPIx peripherals
