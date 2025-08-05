@@ -92,8 +92,8 @@ typedef struct
 	__vo uint32_t OTYPER;                       /*!< TODO,     										Address offset: 0x04      */
 	__vo uint32_t OSPEEDR;
 	__vo uint32_t PUPDR;
-	__vo uint32_t IDR;
-	__vo uint32_t ODR;
+	__vo uint32_t IDR;							/*!< GPIO input data register,                    	Address offset: 0x00      */
+	__vo uint32_t ODR;							/*!< GPIO output data register,                    	Address offset: 0x00      */
 	__vo uint32_t BSRR;
 	__vo uint32_t LCKR;
 	__vo uint32_t AFR[2];					 /*!< AFR[0] : GPIO alternate function low register, AF[1] : GPIO alternate function high register    		Address offset: 0x20-0x24 */
@@ -242,6 +242,9 @@ typedef struct
 
 /*
  *  Macros to reset GPIOx peripherals
+ *  do while structure to execute multiple C commands in same C macro
+ *  To reset the first bit of AHB1RSTR has to be set to 0 and then clears
+ *  it clears all configuration registers (MODER, OTYPER, etc.) back to their reset/default state
  */
 #define GPIOA_REG_RESET()               do{ (RCC->AHB1RSTR |= (1 << 0)); (RCC->AHB1RSTR &= ~(1 << 0)); }while(0)
 #define GPIOB_REG_RESET()               do{ (RCC->AHB1RSTR |= (1 << 1)); (RCC->AHB1RSTR &= ~(1 << 1)); }while(0)

@@ -15,12 +15,12 @@
  */
 typedef struct
 {
-	uint8_t GPIO_PinNumber;
+	uint8_t GPIO_PinNumber;			/*!< possible values from @GPIO_PIN_NUMBERS >*/
 	uint8_t GPIO_PinMode;			/*!< possible values from @GPIO_PIN_MODES >*/
 	uint8_t GPIO_PinSpeed;			/*!< possible values from @GPIO_PIN_SPEED >*/
-	uint8_t GPIO_PinPuPdControl;
-	uint8_t GPIO_PinOPType;
-	uint8_t GPIO_PinAltFunMode;
+	uint8_t GPIO_PinPuPdControl;	/*!< possible values from @GPIO_PIN_PUPD >*/
+	uint8_t GPIO_PinOPType;			/*!< possible values from @GPIO_PIN_OUTPUT_CONFIG >*/
+	uint8_t GPIO_PinAltFunMode;		/*!< possible values from @GPIO_PIN_SPEED >*/
 }GPIO_PinConfig_t;
 
 /*
@@ -67,16 +67,8 @@ typedef struct
 #define GPIO_MODE_IT_RT     5
 #define GPIO_MODE_IT_RFT    6
 
-
 /*
- * GPIO pin possible output types
- */
-#define GPIO_OP_TYPE_PP   0
-#define GPIO_OP_TYPE_OD   1
-
-
-/*
- * @GPIO_PIN_SPEED
+ * Ref - @GPIO_PIN_SPEED
  * GPIO pin possible output speeds
  */
 #define GPIO_SPEED_LOW			0
@@ -84,13 +76,47 @@ typedef struct
 #define GPIO_SPEED_FAST			2
 #define GPOI_SPEED_HIGH			3
 
+/*
+ * Ref - @GPIO_PIN_MODES
+ * GPIO possible modes
+ * Listed in RM (GPIOx_MODER) (x = A..H) pg 187
+ */
+// NON-INTERRUPT MODES
+#define GPIO_MODE_IN		0	// input
+#define GPIO_MODE_OUT		1	// output
+#define GPIO_MODE_ALTFN		2	// alt function
+#define GPIO_MODE_ANALOG	3	// analog
+// INTERRUPT MODES
+#define GPIO_MODE_IT_FT		4	// falling edge
+#define GPIO_MODE_IT_RT		5	// rising edge
+#define GPIO_MODE_IT_RFT	6	// rising/falling edge
 
 /*
- * GPIO pin pull up AND pull down configuration macros
+ * Ref - @GPIO_PIN_OUTPUT_CONFIG
+ * GPIO possible output modes
+ * Listed in RM (GPIOx_OTYPER) (x = A..H) pg 188
  */
-#define GPIO_NO_PUPD   		0
-#define GPIO_PIN_PU			1
-#define GPIO_PIN_PD			2
+#define GPIO_OP_TYPE_PP		0	// Push pull mode
+#define GPIO_OP_TYPE_OD		1	// Open drain mode
+
+/*
+ * Ref - @GPIO_PIN_SPEED
+ * GPIO possible output speeds
+ * Listed in RM (GPIOx_OSPEEDR) (x = A..H) pg 188
+ */
+#define GPIO_SPEED_LOW		0
+#define GPIO_SPEED_MEDIUM	1
+#define GPIO_SPEED_FAST		2
+#define GPIO_SPEED_HIGH		3
+
+/*
+ * Ref - @GPIO_PIN_PUPD
+ * GPIO pin possible pull up or pull down configurations
+ * Listed in RM (GPIOx_PUPDR) (x = A..H) pg 189
+ */
+#define GPIO_PIN_NO_PUPD		0	// No pull-up, pull-down
+#define GPIO_PIN_PU				1	// pull up
+#define GPIO_PIN_PD				2	// pull down
 
 
 /******************************************************************************************
