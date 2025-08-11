@@ -16,6 +16,37 @@
 
 /**********************************START:Processor Specific Details **********************************/
 /*
+ * ARM Cortex Mx Processor NVIC ISERx register Addresses
+ * Refer to: generic user guide, cortex-M4
+ */
+#define NVIC_ISER0          ( (__vo uint32_t*)0xE000E100 )
+#define NVIC_ISER1          ( (__vo uint32_t*)0xE000E104 )
+#define NVIC_ISER2          ( (__vo uint32_t*)0xE000E108 )
+#define NVIC_ISER3          ( (__vo uint32_t*)0xE000E10c )
+
+/*
+ * ARM Cortex Mx Processor NVIC ICERx register Addresses
+ * Refer to: generic user guide, cortex-M4
+ */
+#define NVIC_ICER0 			((__vo uint32_t*)0XE000E180)
+#define NVIC_ICER1			((__vo uint32_t*)0XE000E184)
+#define NVIC_ICER2  		((__vo uint32_t*)0XE000E188)
+#define NVIC_ICER3			((__vo uint32_t*)0XE000E18C)
+
+/*
+ * ARM Cortex Mx Processor Priority Register Address Calculation
+ * Refer to: generic user guide, cortex-M4
+ */
+#define NVIC_PR_BASE_ADDR 	((__vo uint32_t*)0xE000E400)
+
+/*
+ * ARM Cortex Mx Processor number of priority bits implemented in Priority Register
+ * Total bits in IPRx is 8, 0-4 are not implemented, 4-7 are implemented
+ */
+#define NO_PR_BITS_IMPLEMENTED  4
+
+
+/*
  * base addresses of memories - SRAM, FLASH, ROM
  * all these numbers are in memory map, ref manual (page 65)
  */
@@ -48,6 +79,8 @@
 #define GPIOG_BASEADDR			(AHB1PERIPH_BASEADDR + 0x1800)
 #define GPIOH_BASEADDR			(AHB1PERIPH_BASEADDR + 0x1C00)
 #define GPIOI_BASEADDR			(AHB1PERIPH_BASEADDR + 0x2000)
+#define RCC_BASEADDR            (AHB1PERIPH_BASEADDR + 0x3800)
+
 
 /*
  * base addresses of peripherals hanging on the APB1 bus
@@ -65,7 +98,7 @@
 /*
  * base addresses of peripherals hanging on the APB2 bus
  */
-#define EXTI_BASEADDR 			(APB2PERIPH_BASEADDR + 0x3C00)
+#define EXTI_BASEADDR 			(APB2PERIPH_BASEADDR + 0x3C00) // External interrupt/event controller
 #define SYSCFG_BASEADDR 		(APB2PERIPH_BASEADDR + 0x3800)
 #define USART1_BASEADDR			(APB2PERIPH_BASEADDR + 0x1000)
 #define USART6_BASEADDR			(APB2PERIPH_BASEADDR + 0x1400)
@@ -141,6 +174,35 @@ typedef struct
 
 } RCC_RegDef_t;
 
+/*
+ * peripheral register definition structure for SYSCFG
+ */
+typedef struct
+{
+	__vo uint32_t MEMRMP;       /*!< Give a short description,                    Address offset: 0x00      */
+	__vo uint32_t PMC;          /*!< TODO,     									  Address offset: 0x04      */
+	__vo uint32_t EXTICR[4];    /*!< EXTICR 1,2,3 and 4							  Address offset: 0x08-0x14 */
+	// 	EXTICR(1,2,3,4) allows configuring which port should adhere to that specific EXTI line, by default all are set to A
+	uint32_t      RESERVED1[2];  /*!< TODO          							  Reserved, 0x18-0x1C    	*/
+	__vo uint32_t CMPCR;        /*!< TODO         								  Address offset: 0x20      */
+	uint32_t      RESERVED2[2];  /*!<                                             Reserved, 0x24-0x28 	    */
+	__vo uint32_t CFGR;         /*!< TODO                                         Address offset: 0x2C   	*/
+} SYSCFG_RegDef_t;
+
+/*
+ * peripheral register definition structure for EXTI (External interrupt/event controller)
+ */
+typedef struct
+{
+	__vo uint32_t IMR;    /*!< Interrupt mask register (EXTI_IMR)         	  	   			  	Address offset: 0x00 */
+	__vo uint32_t EMR;    /*!< Event mask register (EXTI_EMR)            						Address offset: 0x04 */
+	__vo uint32_t RTSR;   /*!< Rising trigger selection register (EXTI_RTSR)					Address offset: 0x08 */
+	__vo uint32_t FTSR;   /*!< Falling trigger selection register (EXTI_FTSR) 					Address offset: 0x0C */
+	__vo uint32_t SWIER;  /*!< Software interrupt event register (EXTI_SWIER)					Address offset: 0x10 */
+	__vo uint32_t PR;     /*!< Pending register (EXTI_PR)                  					    Address offset: 0x14 */
+
+}EXTI_RegDef_t;
+
 //* Usage:
 //* GPIO_RegDef_t *pGPIO = (GPIO_RegDef_t*)0x40020000 (base addr of gpio)
 //* pGPIO->MODER = 25; // stores value 25 in MODER register
@@ -163,7 +225,8 @@ typedef struct
 #define GPIOI  				((GPIO_RegDef_t*)GPIOI_BASEADDR)
 
 #define RCC 				((RCC_RegDef_t*)RCC_BASEADDR)
-
+#define EXTI				((EXTI_RegDef_t*)EXTI_BASEADDR)			// External interrupt/event controller
+#define SYSCFG				((SYSCFG_RegDef_t*)SYSCFG_BASEADDR)
 
 /*
  * Clock Enable Macros for GPIOx peripherals
@@ -255,6 +318,32 @@ typedef struct
 #define GPIOG_REG_RESET()               do{ (RCC->AHB1RSTR |= (1 << 6)); (RCC->AHB1RSTR &= ~(1 << 6)); }while(0)
 #define GPIOH_REG_RESET()               do{ (RCC->AHB1RSTR |= (1 << 7)); (RCC->AHB1RSTR &= ~(1 << 7)); }while(0)
 #define GPIOI_REG_RESET()               do{ (RCC->AHB1RSTR |= (1 << 8)); (RCC->AHB1RSTR &= ~(1 << 8)); }while(0)
+
+
+/*
+ * returns portcode for the given GPIOx base address
+ */
+#define GPIO_BASEADDR_TO_CODE(x)	 	((x==GPIOA) ? 0 :\
+										(x==GPIOB) ? 1 :\
+										(x==GPIOC) ? 2 :\
+										(x==GPIOD) ? 3 :\
+										(x==GPIOE) ? 4 :\
+										(x==GPIOF) ? 5 :\
+										(x==GPIOG) ? 6 :\
+										(x==GPIOH) ? 7 :\
+										(x==GPIOI) ? 8 :0)
+/*
+ * IRQ (Interrupt Request) Numbers of STM32F466xx MCU
+ * Found in pg 250 in RM, Table 38. Vector table for STM32F446xx
+ */
+
+#define IRQ_NO_EXTI0			6
+#define IRQ_NO_EXTI1			7
+#define IRQ_NO_EXTI2			8
+#define IRQ_NO_EXTI3			9
+#define IRQ_NO_EXTI4			10
+#define IRQ_NO_EXTI9_5			23
+#define IRQ_NO_EXTI15_10		40
 
 
 #endif /* INC_STMF446XX_H_ */

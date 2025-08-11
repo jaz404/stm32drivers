@@ -145,7 +145,33 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle){
 	// Handle Interrupt case
 	else
 	{
-		// TODO: interrupt case
+		// interrupt cases (FT, RT, RFT)
+		if (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_FT){
+			// configure the FTSR
+			EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			// clear the corresponding RTSR - we do not want both to be configured if one was configured before
+			EXTI->RTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+		else if (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RT){
+			// configure the RTSR
+			EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			// clear the corresponding RTSR - we do not want both to be configured if one was configured before
+			EXTI->FTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+		else if (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RFT){
+			// configure the FTSR and RTSR
+			EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+		// configure GPIO port selection in SYS_EXTICR
+		uint8_t temp1 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber/4;
+		uint8_t temp2 = (pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber % 4) * 4;
+		uint8_t portcode = GPIO_BASEADDR_TO_CODE(pGPIOHandle->pGPIOx);
+		SYSCFG_PCLK_EN();
+		SYSCFG->EXTICR[temp1] = portcode << (temp2);
+
+		// enable EXTI interrupt delivery using IMR
+		EXTI->IMR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 	}
 
 	// similar code
@@ -340,5 +366,95 @@ void GPIO_DeInit(GPIO_RegDef_t *pGPIOx)
 	}
 }
 
+/*********************************************************************
+ * @fn      		  - GPIO_IRQInterruptConfig
+ *
+ * @brief             - initializes IRQ on the processor side by setting processor's registers
+ * 						Refer to Table 4-2 NVIC register summary, generic guide, Cortex - M4
+ * 						registers of interest: NVIC_ISER (Interrupt set-enable registers),
+ * 						NVIC_ICER (Interrupt Clear-enable Registers)
+ *
+ * @param[in]         - IRQ number
+ * @param[in]         - Enable or Disable
+ * @param[in]         -
+ *
+ * @return            -  none
+ *
+ * @Note              -  none
+ */
+void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi){
+	if (EnorDi == ENABLE){
+		if (IRQNumber <=31){
+			// NVIC_ISER0 register (handles 0-31 IRQ numbers)
+			*NVIC_ISER0 |= (1<<IRQNumber);
+		}
+		else if (IRQNumber >31 && IRQNumber <64){
+			// NVIC_ISER1 register (handles 32-63 IRQ numbers)
+			*NVIC_ISER1 |= (1<<(IRQNumber%32));	// mod 32 to restart numbering in reg
+		}
+		else if (IRQNumber >=64 && IRQNumber <96){
+			// NVIC_ISER2 register (handles 64-96 IRQ numbers)
+			// we do not have to go beyond ISER2 since we do not have IRQ>81 in F466xx
+			*NVIC_ISER2 |= (1<<(IRQNumber%32));
+		}
+	}
+	else {
+		// disable
+		if (IRQNumber <=31){
+			// NVIC_ICER0 register (handles 0-31 IRQ numbers)
+			*NVIC_ICER0 |= (1<<IRQNumber);
+		}
+		else if (IRQNumber >31 && IRQNumber <64){
+			// NVIC_ICER1 register (handles 32-63 IRQ numbers)
+			*NVIC_ISER1 |= (1<<(IRQNumber%32));
+		}
+		else if (IRQNumber >=64 && IRQNumber <96){
+			// NVIC_ICER2 register (handles 64-96 IRQ numbers)
+			// we do not have to go beyond ICER2 since we do not have IRQ>81 in F466xx
+			*NVIC_ISER2 |= (1<<(IRQNumber%32));
+		}
+	}
+}
 
+/*********************************************************************
+ * @fn      		  - GPIO_IRQPriorityConfig
+ *
+ * @brief             - Initializes the IRQ priority associated with the IRQ number
+ *
+ * @param[in]         - IRQNumber
+ * @param[in]         - IRQPriority
+ * @param[in]         -
+ *
+ * @return            -  none
+ *
+ * @Note              -  none
+ */
+void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority){
+	// find the relevant IPR register
+	uint8_t temp1 = IRQNumber/4;		// IPRx
+	uint8_t temp2 = IRQNumber%4;		// IPRx_section, where in the register
+	uint8_t shift_amt = (8*temp2) + (8 - NO_PR_BITS_IMPLEMENTED);
+	*(NVIC_PR_BASE_ADDR + (temp1*4)) |= (IRQPriority << shift_amt); //
+}
+
+/*********************************************************************
+ * @fn      		  - GPIO_IRQHandling
+ *
+ * @brief             - clears the Pending Register Bit corresponding to the pin  number
+ *
+ * @param[in]         - GPIO pin register definition structure
+ * @param[in]         -
+ * @param[in]         -
+ *
+ * @return            -  none
+ *
+ * @Note              -  none
+ */
+void GPIO_IRQHandling(uint8_t PinNumber){
+	// clear the EXTI pending register corresponding to the pin number
+	if (EXTI->PR && (1<<PinNumber)) {
+		//clear
+		EXTI->PR |= (1<<PinNumber);
+	}
+}
 
